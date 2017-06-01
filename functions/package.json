@@ -1,0 +1,19 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "dependencies": {
+    "firebase-admin": "^4.1.2",
+    "firebase-functions": "^0.5",
+    "playfab-sdk": "^1.6.170530",
+    "request": "^2.81.0"
+  },
+  "private": true,
+  "devDependencies": {
+    "jest": "^20.0.4"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch --notify",
+    "deploy:dev": "firebase deploy"
+  }
+}
