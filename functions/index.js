@@ -31,10 +31,18 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     PlayFab.settings.developerSecretKey = config.playfab.key
     // TODO move all above config stuff to top-level; no need to rerun once per request
     // client will pass custom={playfabId}
-    const {playfabId} = JSON.parse(req.body.custom)
-    if (!playfabId) throw new Error('req.body.custom.playfabId required')
-    const tx = req.body.txn_id
-    if (!tx) throw new Error('req.body.txn_id required')
+    // ...but if they don't, it doesn't help to retry more
+    try {
+      const {playfabId} = JSON.parse(req.body.custom)
+      if (!playfabId) throw new Error('req.body.custom.playfabId required')
+      const tx = req.body.txn_id
+      if (!tx) throw new Error('req.body.txn_id required')
+    }
+    catch (e) {
+      console.error('Cannot process IPN request; quitting without retries', e, req.body)
+      // This really should be a 400, but paypal wants a 200 to stop retrying
+      return res.status(200).send("")
+    }
     
     console.log({playfabId, tx}, req.body)
 

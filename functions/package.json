@@ -14,6 +14,8 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch --notify",
-    "deploy:dev": "firebase deploy"
+    "_deploy": "firebase deploy --project $FIREBASE_ENV",
+    "deploy:dev": "FIREBASE_ENV=swarm1-dev npm run _deploy",
+    "deploy:prod": "FIREBASE_ENV=swarm1-prod npm run _deploy"
   }
 }
