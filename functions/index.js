@@ -1,5 +1,7 @@
 var functions = require('firebase-functions');
 var request = require('request');
+var PlayFab = require('playfab-sdk/Scripts/PlayFab/PlayFab');
+var PlayFabServer = require('playfab-sdk/Scripts/PlayFab/PlayFabServer');
 
 // Start writing Firebase Functions
 // https://firebase.google.com/functions/write-firebase-functions
@@ -25,6 +27,9 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     if (!config.playfab.key) throw new Error('config.playfab.key required')
     if (!config.paypal.env) throw new Error('config.paypal.env required')
     const paypalHost = paypalEnvs[config.paypal.env]
+    PlayFab.settings.titleId = config.playfab.id
+    PlayFab.settings.developerSecretKey = config.playfab.key
+    // TODO move all above config stuff to top-level; no need to rerun once per request
     // client will pass custom={playfabId}
     const {playfabId} = JSON.parse(req.body.custom)
     if (!playfabId) throw new Error('req.body.custom.playfabId required')
@@ -51,7 +56,23 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
         if (verifyRes.statusCode !== 200) throw new Error('non-200 status code: '+verifyRes.statusCode)
         if (!verifyResBody.startsWith('VERIFIED')) throw new Error('body not verified: '+verifyResBody)
         console.log('verified', verifyRes, verifyResBody)
-        return res.status(200).send("")
+
+        // verified it's a real paypal request; now notify playfab
+        PlayFabServer.ExecuteCloudScript({
+          PlayFabId: playfabId,
+          FunctionName: 'paypalNotify',
+          FunctionParameter: {tx},
+        }, (error, playfabRes) => {
+          try {
+            if (error) throw new Error('error: '+error)
+            console.log('paypalNotify success', playfabRes)
+            return res.status(200).send("")
+          }
+          catch (e) {
+            console.error('paypalNotify failed', e)
+            return res.status(500).send("")
+          }
+        })
       }
       catch (e) {
         console.error('verifyReq failed', e)
