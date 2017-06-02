@@ -57,7 +57,9 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
         if (!verifyResBody.startsWith('VERIFIED')) throw new Error('body not verified: '+verifyResBody)
         console.log('verified', verifyRes, verifyResBody)
 
-        // verified it's a real paypal request; now notify playfab
+        // verified it's a real paypal request; now notify playfab.
+        // There is no need to validate the transaction type/etc. here,
+        // playfab verifies it's a completed txn
         PlayFabServer.ExecuteCloudScript({
           PlayFabId: playfabId,
           FunctionName: 'paypalNotify',
