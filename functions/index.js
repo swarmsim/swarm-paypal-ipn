@@ -39,7 +39,7 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
       if (!tx) throw new Error('req.body.txn_id required')
     }
     catch (e) {
-      console.error('Cannot process IPN request; quitting without retries', e, req.body)
+      console.error('Cannot process IPN request (bad parameters passed to paypal purchase?); quitting without retries', e, req.body)
       // This really should be a 400, but paypal wants a 200 to stop retrying
       return res.status(200).send("")
     }

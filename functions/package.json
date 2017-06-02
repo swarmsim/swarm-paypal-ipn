@@ -16,6 +16,9 @@
     "test:watch": "jest --watch --notify",
     "_deploy": "firebase deploy --project $FIREBASE_ENV",
     "deploy:dev": "FIREBASE_ENV=swarm1-dev npm run _deploy",
-    "deploy:prod": "FIREBASE_ENV=swarm1-prod npm run _deploy"
+    "deploy:prod": "FIREBASE_ENV=swarm1-prod npm run _deploy",
+    "_logs": "firebase functions:log --project $FIREBASE_ENV",
+    "logs:dev": "FIREBASE_ENV=swarm1-dev npm run _logs",
+    "logs:prod": "FIREBASE_ENV=swarm1-prod npm run _logs"
   }
 }
