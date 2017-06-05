@@ -32,10 +32,11 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     // TODO move all above config stuff to top-level; no need to rerun once per request
     // client will pass custom={playfabId}
     // ...but if they don't, it doesn't help to retry more
+    let playfabId, tx
     try {
-      const {playfabId} = JSON.parse(req.body.custom)
+      ({playfabId} = JSON.parse(req.body.custom))
       if (!playfabId) throw new Error('req.body.custom.playfabId required')
-      const tx = req.body.txn_id
+      tx = req.body.txn_id
       if (!tx) throw new Error('req.body.txn_id required')
     }
     catch (e) {
