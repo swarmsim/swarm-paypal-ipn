@@ -22,7 +22,7 @@ exports.ipnVerificationPostBody = function ipnVerificationPostBody(body) {
     encodeURIComponent(key)+'='+encodeURIComponent(body[key])).join('&')
 }
 exports.isTxnSkipped = function isTxnSkipped(config, tx) {
-  return config.paypal.skipTxns && !!_.keyBy(JSON.parse(config.paypal.skipTxns))[tx]
+  return config.paypal.skiptxns && !!_.keyBy(JSON.parse(config.paypal.skiptxns))[tx]
 }
 exports.ipnHandler = functions.https.onRequest((req, res) => {
   try {
@@ -54,7 +54,10 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     // For various operational reasons (like UTF-8 encoding shenanigans), we might
     // resolve an order manually and avoid processing it here. Allow us to set
     // transaction IDs to skip and stop processing, so they don't retry forever
-    // in paypal's IPN system.
+    // in paypal's IPN system. Doing this via config is less convenient to update,
+    // but it keeps tx ids private.
+    //
+    // firebase functions:config:set --project=swarm1-prod paypal.skiptxns='["abc123"]'
     if (isTxnSkipped(config, tx)) {
       console.log('paypalNotify skipped tx', tx)
       return res.status(200).send("")
