@@ -2,6 +2,7 @@ var functions = require('firebase-functions');
 var request = require('request');
 var PlayFab = require('playfab-sdk/Scripts/PlayFab/PlayFab');
 var PlayFabServer = require('playfab-sdk/Scripts/PlayFab/PlayFabServer');
+var _ = require('lodash')
 
 // Start writing Firebase Functions
 // https://firebase.google.com/functions/write-firebase-functions
@@ -19,6 +20,9 @@ const paypalEnvs = {
 exports.ipnVerificationPostBody = function ipnVerificationPostBody(body) {
   return 'cmd=_notify-validate&' + Object.keys(body).map(key =>
     encodeURIComponent(key)+'='+encodeURIComponent(body[key])).join('&')
+}
+exports.isTxnSkipped = function isTxnSkipped(config, tx) {
+  return config.paypal.skipTxns && !!_.keyBy(JSON.parse(config.paypal.skipTxns))[tx]
 }
 exports.ipnHandler = functions.https.onRequest((req, res) => {
   try {
@@ -46,6 +50,15 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     }
     
     console.log({playfabId, tx}, req.body)
+
+    // For various operational reasons (like UTF-8 encoding shenanigans), we might
+    // resolve an order manually and avoid processing it here. Allow us to set
+    // transaction IDs to skip and stop processing, so they don't retry forever
+    // in paypal's IPN system.
+    if (isTxnSkipped(config, tx)) {
+      console.log('paypalNotify skipped tx', tx)
+      return res.status(200).send("")
+    }
 
     const body = exports.ipnVerificationPostBody(req.body);
     const verifyReq = {
