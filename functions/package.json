@@ -1,16 +1,20 @@
 {
   "name": "functions",
   "description": "Cloud Functions for Firebase",
+  "engines": {
+    "node": "14"
+  },
   "dependencies": {
-    "firebase-admin": "^4.1.2",
-    "firebase-functions": "^0.5",
+    "firebase-admin": "^9.6.0",
+    "firebase-functions": "^3.13.2",
     "lodash": "^4.17.4",
-    "playfab-sdk": "^1.6.170530",
-    "request": "^2.81.0"
+    "playfab-sdk": "^2.66.210406",
+    "request": "^2.88.2"
   },
   "private": true,
   "devDependencies": {
-    "jest": "^20.0.4"
+    "firebase-tools": "^9.9.0",
+    "jest": "^26.6.3"
   },
   "scripts": {
     "test": "jest",

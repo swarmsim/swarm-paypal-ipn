@@ -1,14 +1,19 @@
 var functions = require('firebase-functions');
-var request = require('request');
 var PlayFab = require('playfab-sdk/Scripts/PlayFab/PlayFab');
 var PlayFabServer = require('playfab-sdk/Scripts/PlayFab/PlayFabServer');
 var _ = require('lodash')
+var request = require('request')
 
 // Start writing Firebase Functions
 // https://firebase.google.com/functions/write-firebase-functions
 
-exports.helloWorld = functions.https.onRequest((request, response) => {
-  response.send("Hello from Firebase! playfab id: "+functions.config().playfab.id);
+exports.helloWorld = functions.https.onRequest(async (req, res) => {
+  console.log(JSON.stringify({body: req.body}))
+  res.json({
+    message: "Hello from Firebase!",
+    playfabId: functions.config().playfab.id,
+    body: req.body,
+  });
 })
 
 // https://developer.paypal.com/docs/classic/ipn/integration-guide/IPNImplementation/
@@ -17,14 +22,19 @@ const paypalEnvs = {
   prod: 'https://ipnpb.paypal.com/cgi-bin/webscr',
 }
 
-exports.ipnVerificationPostBody = function ipnVerificationPostBody(body) {
+function ipnVerificationPostBody(body) {
   return 'cmd=_notify-validate&' + Object.keys(body).map(key =>
     encodeURIComponent(key)+'='+encodeURIComponent(body[key])).join('&')
 }
-exports.isTxnSkipped = function isTxnSkipped(config, tx) {
+exports.ipnVerificationPostBody = ipnVerificationPostBody
+
+function isTxnSkipped(config, tx) {
   return config.paypal.skiptxns && !!_.keyBy(JSON.parse(config.paypal.skiptxns))[tx]
 }
-exports.ipnHandler = functions.https.onRequest((req, res) => {
+exports.isTxnSkipped = isTxnSkipped
+
+exports.ipnHandler = functions.https.onRequest(async (req, res) => {
+  console.log(JSON.stringify({body: req.body}))
   try {
     const config = functions.config()
     if (!config.playfab.id) throw new Error('config.playfab.id required')
@@ -38,18 +48,21 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
     // ...but if they don't, it doesn't help to retry more
     let playfabId, tx
     try {
-      ({playfabId} = JSON.parse(req.body.custom))
+      if (!req.body.custom) throw new Error('request.body.custom required')
+      const custom = JSON.parse(req.body.custom)
+      console.log('custom', custom)
+      playfabId = custom.playfabId
       if (!playfabId) throw new Error('req.body.custom.playfabId required')
       tx = req.body.txn_id
       if (!tx) throw new Error('req.body.txn_id required')
     }
     catch (e) {
-      console.error('Cannot process IPN request (bad parameters passed to paypal purchase?); quitting without retries', e, req.body)
+      console.error('Cannot process IPN request (bad parameters passed to paypal purchase?); quitting without retries', e, JSON.stringify(req.body))
       // This really should be a 400, but paypal wants a 200 to stop retrying
       return res.status(200).send("")
     }
-    
-    console.log({playfabId, tx}, req.body)
+
+    console.log({playfabId, tx}, JSON.stringify(req.body))
 
     // For various operational reasons (like UTF-8 encoding shenanigans), we might
     // resolve an order manually and avoid processing it here. Allow us to set
@@ -106,12 +119,6 @@ exports.ipnHandler = functions.https.onRequest((req, res) => {
         return res.status(500).send("")
       }
     })
-
-    // x in swarmsim-client, add `&custom={{encodeUrlComponent(JSON.stringify({playfabId}))}}` to hosted button urls (no hotfix possible)
-    // * ipn server process:
-    //   x decode custom vars (playfabId)
-    //   x call paypal, verify the request per IPN docs.
-    //   * call the playfab PDT cloudscript with {tx, playfabId}. we configured a server-secret with firebase, so auth as that player is unnecessary.
   }
   catch (e) {
     console.error('IPN failed', e)
